@@ -3,6 +3,7 @@ mod policy;
 mod utils;
 
 use clap::Parser;
+use log::debug;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -18,6 +19,9 @@ struct Args {
 }
 
 fn main() {
+    // init logger
+    env_logger::init();
+
     // parse command line arguments
     let cli = Args::parse();
     let context = def::Context {
@@ -34,10 +38,12 @@ fn main() {
 
     // enumerate all codes
     let all_codes = utils::get_all_codes(&context);
+    debug!("finish get_all_codes");
 
     // main process
     let mut candidates = all_codes.clone();
     while candidates.len() > 1 {
+        debug!("Number of candidates: {}", candidates.len());
         let guess = match context.policy {
             def::Policy::Firstpick => policy::first_pick(&candidates),
             def::Policy::Minmax => policy::minmax(&candidates, &all_codes, &context),
