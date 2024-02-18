@@ -10,10 +10,18 @@ pub struct Context {
     pub pin_num: usize,
     pub duplicate: bool,
     pub policy: Policy,
+    pub mode: Mode,
+    pub benchmark: bool,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Policy {
     Firstpick,
     Minmax,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum Mode {
+    Guess,
+    Mktree,
 }

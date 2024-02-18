@@ -51,7 +51,7 @@ pub fn calc_hint(code: &def::Code, guess: &def::Code, context: &def::Context) ->
     (hit, blow)
 }
 
-// create map whose key is hint vaule is code set
+// create map whose key is hint vaule is number of code set
 pub fn calc_hint_based_candidate_num_map(
     candidates: &def::CodeSet,
     guess: &def::Code,
@@ -62,6 +62,20 @@ pub fn calc_hint_based_candidate_num_map(
         let hint = calc_hint(code, guess, context);
         let candidate_num = map.entry(hint).or_insert(0);
         *candidate_num += 1;
+    }
+    map
+}
+
+// create map whose key is hint vaule is code set
+pub fn calc_hint_based_candidates_map(
+    candidates: &def::CodeSet,
+    guess: &def::Code,
+    context: &def::Context,
+) -> HashMap<def::Hint, def::CodeSet> {
+    let mut map = HashMap::new();
+    for code in candidates {
+        let hint = calc_hint(code, guess, context);
+        map.entry(hint).or_insert_with(Vec::new).push(code.clone());
     }
     map
 }
