@@ -113,22 +113,25 @@ fn mktree_step(
 
 fn main_benchmark(context: def::Context) {
     let context_set = [(2, 2), (4, 2), (4, 4), (6, 2), (6, 4)];
-    println!("color_num,pin_num,duplicate,policy,elapsed");
+    // let context_set = [(2, 2), (4, 2), (4, 4), (6, 2)];
+    println!("color_num,pin_num,duplicate,policy,run,elapsed");
     for (color_num, pin_num) in context_set {
-        let exp_context = def::Context {
-            color_num,
-            pin_num,
-            duplicate: context.duplicate,
-            policy: context.policy.clone(),
-            mode: context.mode.clone(),
-        };
-        let start = std::time::Instant::now();
-        main_mktree(exp_context, false);
-        let elapsed = start.elapsed().as_secs_f32();
-        println!(
-            "{},{},{},{:?},{}",
-            color_num, pin_num, context.duplicate, context.policy, elapsed
-        );
+        for i in 0..10 {
+            let exp_context = def::Context {
+                color_num,
+                pin_num,
+                duplicate: context.duplicate,
+                policy: context.policy.clone(),
+                mode: context.mode.clone(),
+            };
+            let start = std::time::Instant::now();
+            main_mktree(exp_context, false);
+            let elapsed = start.elapsed().as_secs_f32();
+            println!(
+                "{},{},{},{:?},{},{}",
+                color_num, pin_num, context.duplicate, context.policy, i, elapsed
+            );
+        }
     }
 }
 
