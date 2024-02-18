@@ -1,5 +1,9 @@
 use std::io::Write;
 
+type Code = Vec<usize>;
+type CodeSet = Vec<Code>;
+type Hint = (usize, usize);
+
 fn main() {
     // temporary setting
     let pin_num = 2; // number of pins
@@ -15,7 +19,7 @@ fn main() {
     );
 
     // manually enumeration of all codes
-    let all_codes: Vec<Vec<usize>> = vec![vec![0, 1], vec![0, 2], vec![1, 0], vec![1, 2], vec![2, 0], vec![2, 1]];
+    let all_codes: CodeSet = vec![vec![0, 1], vec![0, 2], vec![1, 0], vec![1, 2], vec![2, 0], vec![2, 1]];
 
     // main process
     let mut candidates = all_codes.clone();
@@ -32,12 +36,12 @@ fn main() {
 }
 
 // select guess from guess set
-fn policy(guess_set: &[Vec<usize>]) -> Vec<usize> {
+fn policy(guess_set: &CodeSet) -> Code {
     guess_set[0].clone()
 }
 
 // get a hint according to the guess from user input
-fn trial(guess: &Vec<usize>) -> (usize, usize) {
+fn trial(guess: &Code) -> Hint {
     println!("Guess: {:?}", guess);
     print!("input hit and blow (format: hit blow)> ");
     std::io::stdout().flush().unwrap();
@@ -51,7 +55,7 @@ fn trial(guess: &Vec<usize>) -> (usize, usize) {
 }
 
 // calculate hint from two codes
-fn calc_hint(code: &[usize], guess: &[usize]) -> (usize, usize) {
+fn calc_hint(code: &Code, guess: &Code) -> Hint {
     let mut hit = 0;
     let mut blow = 0;
     let mut code_color_counts = [0; 3]; // array of the number of i-th colors which code has
