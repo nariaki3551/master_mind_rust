@@ -11,7 +11,6 @@ pub struct Context {
     pub duplicate: bool,
     pub policy: Policy,
     pub mode: Mode,
-    pub benchmark: bool,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -24,4 +23,5 @@ pub enum Policy {
 pub enum Mode {
     Guess,
     Mktree,
+    Benchmark,
 }

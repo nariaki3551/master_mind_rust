@@ -8,9 +8,9 @@ use log::debug;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(help = "number of colors")]
+    #[arg(default_value_t = 6, help = "number of colors")]
     color_num: usize,
-    #[arg(help = "number of pins")]
+    #[arg(default_value_t = 4, help = "number of pins")]
     pin_num: usize,
     #[arg(short, long, help = "codes do not have duplicate colors")]
     non_duplicate: bool,
@@ -18,8 +18,6 @@ struct Args {
     policy: def::Policy,
     #[arg(long, value_enum, default_value_t = def::Mode::Guess, help = "mode")]
     mode: def::Mode,
-    #[arg(short, long, help = "benchmark mode")]
-    benchmark: bool,
 }
 
 fn main() {
@@ -34,26 +32,25 @@ fn main() {
         duplicate: !cli.non_duplicate,
         policy: cli.policy,
         mode: cli.mode,
-        benchmark: cli.benchmark,
     };
-    println!("{:?}", context);
 
     match context.mode {
-        def::Mode::Mktree => main_mktree(&context),
-        def::Mode::Guess => {
-            println!(
-                "You decide the secret code with colors from 0 to {}, and I will guess it. Let's start!",
-                context.color_num - 1
-            );
-            main_guess(&context);
-        }
+        def::Mode::Guess => main_guess(context),
+        def::Mode::Mktree => main_mktree(context, true),
+        def::Mode::Benchmark => main_benchmark(context),
     }
 }
 
-fn main_guess(context: &def::Context) {
+fn main_guess(context: def::Context) {
+    println!("{:?}", context);
+    println!(
+        "You decide the secret code with colors from 0 to {}, and I will guess it. Let's start!",
+        context.color_num - 1
+    );
+
     // generate all codes from context
-    let all_codes = utils::get_all_codes(context);
-    debug!("finish get_all_codes");
+    let all_codes = utils::get_all_codes(&context);
+    debug!("finish get_all_codes: size {}", all_codes.len());
 
     // main process
     let mut candidates = all_codes.clone();
@@ -61,31 +58,27 @@ fn main_guess(context: &def::Context) {
         debug!("Number of candidates: {}", candidates.len());
         let guess = match context.policy {
             def::Policy::Firstpick => policy::first_pick(&candidates),
-            def::Policy::Minmax => policy::minmax(&candidates, &all_codes, context),
+            def::Policy::Minmax => policy::minmax(&candidates, &all_codes, &context),
         };
         let hint = utils::trial(&guess);
-        candidates.retain(|x| utils::calc_hint(x, &guess, context) == hint); // update candidates
+        candidates.retain(|x| utils::calc_hint(x, &guess, &context) == hint); // update candidates
     }
     assert_eq!(candidates.len(), 1);
 
     // post process
-    let secret = &candidates[0];
-    println!("Your secret is {:?}", secret);
+    println!("Your secret is {:?}", &candidates[0]);
 }
 
-fn main_mktree(context: &def::Context) {
-    if !context.benchmark {
+fn main_mktree(context: def::Context, verbose: bool) {
+    if verbose {
+        println!("{:?}", context);
         print_notation();
     }
 
-    let start = std::time::Instant::now();
-
     // generate all codes from context
-    let all_codes = utils::get_all_codes(context);
-    debug!("finish get_all_codes");
-    mktree_step(&all_codes, 1, &all_codes, context);
-
-    println!("Elapsed Time: {:.4} sec", start.elapsed().as_secs_f32());
+    let all_codes = utils::get_all_codes(&context);
+    debug!("finish get_all_codes: size {}", all_codes.len());
+    mktree_step(&all_codes, 1, &all_codes, &context, verbose);
 }
 
 fn mktree_step(
@@ -93,27 +86,49 @@ fn mktree_step(
     depth: usize,
     all_codes: &def::CodeSet,
     context: &def::Context,
+    verbose: bool,
 ) {
     let guess = match context.policy {
         def::Policy::Firstpick => policy::first_pick(candidates),
         def::Policy::Minmax => policy::minmax(candidates, all_codes, context),
     };
-    if !context.benchmark {
+    if verbose {
         print_trial(depth, &guess);
     }
     let map = utils::calc_hint_based_candidates_map(candidates, &guess, context);
     for (hint, candidates) in &map {
-        if !context.benchmark {
+        if verbose {
             print_hint(depth, hint, candidates.len());
         }
         if candidates.len() == 1 {
             let turn = depth + if hint.0 == context.pin_num { 0 } else { 1 };
-            if !context.benchmark {
+            if verbose {
                 print_secret(depth, &map[hint][0], turn);
             }
         } else {
-            mktree_step(&map[hint], depth + 1, all_codes, context);
+            mktree_step(&map[hint], depth + 1, all_codes, context, verbose);
         }
+    }
+}
+
+fn main_benchmark(context: def::Context) {
+    let context_set = [(2, 2), (4, 2), (4, 4), (6, 2), (6, 4)];
+    println!("color_num,pin_num,duplicate,policy,elapsed");
+    for (color_num, pin_num) in context_set {
+        let exp_context = def::Context {
+            color_num,
+            pin_num,
+            duplicate: context.duplicate,
+            policy: context.policy.clone(),
+            mode: context.mode.clone(),
+        };
+        let start = std::time::Instant::now();
+        main_mktree(exp_context, false);
+        let elapsed = start.elapsed().as_secs_f32();
+        println!(
+            "{},{},{},{:?},{}",
+            color_num, pin_num, context.duplicate, context.policy, elapsed
+        );
     }
 }
 
