@@ -13,6 +13,8 @@ struct Args {
     pin_num: usize,
     #[arg(short, long, help = "codes do not have duplicate colors")]
     non_duplicate: bool,
+    #[arg(long, value_enum, default_value_t = def::Policy::Minmax, help = "policy")]
+    policy: def::Policy,
 }
 
 fn main() {
@@ -22,6 +24,7 @@ fn main() {
         color_num: cli.color_num,
         pin_num: cli.pin_num,
         duplicate: !cli.non_duplicate,
+        policy: cli.policy,
     };
     println!("{:?}", context);
     println!(
@@ -35,7 +38,10 @@ fn main() {
     // main process
     let mut candidates = all_codes.clone();
     while candidates.len() > 1 {
-        let guess = policy::first_pick(&candidates);
+        let guess = match context.policy {
+            def::Policy::Firstpick => policy::first_pick(&candidates),
+            def::Policy::Minmax => policy::minmax(&candidates, &all_codes, &context),
+        };
         let hint = utils::trial(&guess);
         candidates.retain(|x| utils::calc_hint(x, &guess, &context) == hint); // update candidates
     }

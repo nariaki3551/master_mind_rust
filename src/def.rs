@@ -1,3 +1,5 @@
+use clap::ValueEnum;
+
 pub type Code = Vec<usize>;
 pub type CodeSet = Vec<Code>;
 pub type Hint = (usize, usize);
@@ -7,4 +9,11 @@ pub struct Context {
     pub color_num: usize,
     pub pin_num: usize,
     pub duplicate: bool,
+    pub policy: Policy,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum Policy {
+    Firstpick,
+    Minmax,
 }

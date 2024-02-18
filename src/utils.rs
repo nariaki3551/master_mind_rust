@@ -1,6 +1,7 @@
 use crate::def;
 
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::io::Write;
 
 // enumerate all codes according to context
@@ -48,6 +49,21 @@ pub fn calc_hint(code: &def::Code, guess: &def::Code, context: &def::Context) ->
         blow += std::cmp::min(code_color_counts[i], guess_color_counts[i]);
     }
     (hit, blow)
+}
+
+// create map whose key is hint vaule is code set
+pub fn calc_hint_based_candidate_num_map(
+    candidates: &def::CodeSet,
+    guess: &def::Code,
+    context: &def::Context,
+) -> HashMap<def::Hint, i16> {
+    let mut map = HashMap::new();
+    for code in candidates {
+        let hint = calc_hint(code, guess, context);
+        let candidate_num = map.entry(hint).or_insert(0);
+        *candidate_num += 1;
+    }
+    map
 }
 
 #[cfg(test)]
