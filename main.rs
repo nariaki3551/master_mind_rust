@@ -1,3 +1,5 @@
+use std::io::Write;
+
 fn main() {
     // temporary setting
     let pin_num = 2;  // number of pins
@@ -28,5 +30,13 @@ fn policy(guess_set: Vec<Vec<usize>>) -> Vec<usize> {
 
 // get a hint according to the guess from user input
 fn trial(guess: Vec<usize>) -> (usize, usize) {
-    todo!();
+    println!("Guess is {:?}", guess);
+    print!("input hit and blow (format: hit blow)> ");
+    std::io::stdout().flush().unwrap();
+    let mut input_string = String::new();
+    std::io::stdin().read_line(&mut input_string).ok();
+    let parts: Vec<&str> = input_string.split_whitespace().collect();
+    let hit = parts[0].parse().expect("Hit should be an integer number.");
+    let blow = parts[1].parse().expect("Blow should be an integer number.");
+    (hit, blow)
 }
