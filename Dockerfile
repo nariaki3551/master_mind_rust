@@ -15,7 +15,3 @@ RUN echo "source $HOME/.cargo/env" >> .bashrc
 
 # copy local files into image
 COPY . .
-
-# build
-# RUN mkdir build
-# RUN cd build && cmake .. && make
