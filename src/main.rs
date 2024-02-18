@@ -1,17 +1,8 @@
+mod def;
+mod policy;
+mod utils;
+
 use clap::Parser;
-use itertools::Itertools;
-use std::io::Write;
-
-type Code = Vec<usize>;
-type CodeSet = Vec<Code>;
-type Hint = (usize, usize);
-
-#[derive(Debug)]
-struct Context {
-    color_num: usize,
-    pin_num: usize,
-    duplicate: bool,
-}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -27,7 +18,7 @@ struct Args {
 fn main() {
     // parse command line arguments
     let cli = Args::parse();
-    let context = Context {
+    let context = def::Context {
         color_num: cli.color_num,
         pin_num: cli.pin_num,
         duplicate: !cli.non_duplicate,
@@ -39,152 +30,18 @@ fn main() {
     );
 
     // enumerate all codes
-    let all_codes = get_all_codes(&context);
+    let all_codes = utils::get_all_codes(&context);
 
     // main process
     let mut candidates = all_codes.clone();
     while candidates.len() > 1 {
-        let guess = policy(&candidates);
-        let hint = trial(&guess);
-        candidates.retain(|x| calc_hint(x, &guess, &context) == hint); // update candidates
+        let guess = policy::first_pick(&candidates);
+        let hint = utils::trial(&guess);
+        candidates.retain(|x| utils::calc_hint(x, &guess, &context) == hint); // update candidates
     }
     assert_eq!(candidates.len(), 1);
 
     // post process
     let secret = &candidates[0];
     println!("Your secret is {:?}", secret);
-}
-
-// enumerate all codes according to context
-fn get_all_codes(context: &Context) -> CodeSet {
-    match context.duplicate {
-        true => (0..context.pin_num)
-            .map(|_| 0..context.color_num)
-            .multi_cartesian_product()
-            .collect(),
-        false => (0..context.color_num)
-            .permutations(context.pin_num)
-            .collect(),
-    }
-}
-
-// select guess from guess set
-fn policy(guess_set: &CodeSet) -> Code {
-    guess_set[0].clone()
-}
-
-// get a hint according to the guess from user input
-fn trial(guess: &Code) -> Hint {
-    println!("Guess: {:?}", guess);
-    print!("input hit and blow (format: hit blow)> ");
-    std::io::stdout().flush().unwrap();
-    let mut input_string = String::new();
-    std::io::stdin().read_line(&mut input_string).ok();
-    let parts: Vec<&str> = input_string.split_whitespace().collect();
-    let hit = parts[0].parse().expect("Hit should be an integer number.");
-    let blow = parts[1].parse().expect("Blow should be an integer number.");
-    println!("Hint: {:?}", (hit, blow));
-    (hit, blow)
-}
-
-// calculate hint from two codes
-fn calc_hint(code: &Code, guess: &Code, context: &Context) -> Hint {
-    let mut hit = 0;
-    let mut blow = 0;
-    let mut code_color_counts = vec![0; context.color_num]; // array of the number of i-th colors which code has
-    let mut guess_color_counts = vec![0; context.color_num]; // array of the number of i-th colors which guess has
-    for i in 0..context.pin_num {
-        if code[i] == guess[i] {
-            hit += 1;
-        } else {
-            code_color_counts[code[i]] += 1;
-            guess_color_counts[guess[i]] += 1;
-        }
-    }
-    for i in 0..context.color_num {
-        blow += std::cmp::min(code_color_counts[i], guess_color_counts[i]);
-    }
-    (hit, blow)
-}
-
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_calc_hint_2color_2pin() {
-        let context = Context {
-            pin_num: 2,
-            color_num: 2,
-            duplicate: true,
-        };
-        assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 1_usize], &context),
-            (0, 0)
-        );
-        assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 1_usize], &context),
-            (1, 0)
-        );
-        assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 0_usize], &context),
-            (1, 0)
-        );
-        assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 0_usize], &context),
-            (2, 0)
-        );
-        assert_eq!(
-            calc_hint(&vec![0_usize, 1_usize], &vec![1_usize, 0_usize], &context),
-            (0, 2)
-        );
-    }
-
-    #[test]
-    fn test_calc_hint_6color_3pin() {
-        let context = Context {
-            pin_num: 3,
-            color_num: 6,
-            duplicate: true,
-        };
-        assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![1_usize, 1_usize, 5_usize],
-                &context
-            ),
-            (0, 0)
-        );
-        assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![0_usize, 1_usize, 5_usize],
-                &context
-            ),
-            (1, 0)
-        );
-        assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![1_usize, 0_usize, 5_usize],
-                &context
-            ),
-            (1, 0)
-        );
-        assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![0_usize, 0_usize, 5_usize],
-                &context
-            ),
-            (2, 0)
-        );
-        assert_eq!(
-            calc_hint(
-                &vec![0_usize, 1_usize, 4_usize],
-                &vec![1_usize, 0_usize, 5_usize],
-                &context
-            ),
-            (0, 2)
-        );
-    }
 }
