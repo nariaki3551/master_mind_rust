@@ -101,8 +101,90 @@ fn calc_hint(code: &Code, guess: &Code, context: &Context) -> Hint {
             guess_color_counts[guess[i]] += 1;
         }
     }
-    for i in 0..context.color_num{
+    for i in 0..context.color_num {
         blow += std::cmp::min(code_color_counts[i], guess_color_counts[i]);
     }
     (hit, blow)
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calc_hint_2color_2pin() {
+        let context = Context {
+            pin_num: 2,
+            color_num: 2,
+            duplicate: true,
+        };
+        assert_eq!(
+            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 1_usize], &context),
+            (0, 0)
+        );
+        assert_eq!(
+            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 1_usize], &context),
+            (1, 0)
+        );
+        assert_eq!(
+            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 0_usize], &context),
+            (1, 0)
+        );
+        assert_eq!(
+            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 0_usize], &context),
+            (2, 0)
+        );
+        assert_eq!(
+            calc_hint(&vec![0_usize, 1_usize], &vec![1_usize, 0_usize], &context),
+            (0, 2)
+        );
+    }
+
+    #[test]
+    fn test_calc_hint_6color_3pin() {
+        let context = Context {
+            pin_num: 3,
+            color_num: 6,
+            duplicate: true,
+        };
+        assert_eq!(
+            calc_hint(
+                &vec![0_usize, 0_usize, 4_usize],
+                &vec![1_usize, 1_usize, 5_usize],
+                &context
+            ),
+            (0, 0)
+        );
+        assert_eq!(
+            calc_hint(
+                &vec![0_usize, 0_usize, 4_usize],
+                &vec![0_usize, 1_usize, 5_usize],
+                &context
+            ),
+            (1, 0)
+        );
+        assert_eq!(
+            calc_hint(
+                &vec![0_usize, 0_usize, 4_usize],
+                &vec![1_usize, 0_usize, 5_usize],
+                &context
+            ),
+            (1, 0)
+        );
+        assert_eq!(
+            calc_hint(
+                &vec![0_usize, 0_usize, 4_usize],
+                &vec![0_usize, 0_usize, 5_usize],
+                &context
+            ),
+            (2, 0)
+        );
+        assert_eq!(
+            calc_hint(
+                &vec![0_usize, 1_usize, 4_usize],
+                &vec![1_usize, 0_usize, 5_usize],
+                &context
+            ),
+            (0, 2)
+        );
+    }
 }
