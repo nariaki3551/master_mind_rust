@@ -1,2 +1,2 @@
 # master_mind_rust
-Master mind game implemented by Rust
+A solver for the master mind game implemented by Rust.
