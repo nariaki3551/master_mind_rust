@@ -1,5 +1,7 @@
 # master_mind_rust
-A solver for the master mind game implemented by Rust.
+A Rust-implemented solver for the master mind game.
+
+You can play the master mind game online here → https://webgamesonline.com/mastermind/ .
 
 ## build
 
