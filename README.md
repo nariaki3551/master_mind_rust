@@ -3,12 +3,6 @@ A Rust-implemented solver for the master mind game.
 
 You can play the master mind game online here → https://webgamesonline.com/mastermind/ .
 
-## build
-
-```shell
-cargo build -r
-```
-
 ## Usage 
 
 ```
@@ -29,10 +23,10 @@ Options:
 
 ### Guess mode
 
-In this mode, the solver attempts to deduce the user's secret code. The user must provide feedback for the solver's guesses. Feedback consists of a pair of the number of hits and blows.
+In this mode, the solver attempts to find the user's secret code. The user must provide feedback for the solver's guesses. Feedback consists of a pair of the number of hits and blows.
 
-- **hit**: The number of pins that are correctly matched in both color and position to the secret code.
-- **blow**: The number of pins that match the secret code in color but are positioned differently.
+- **hit**: The number of pins that are correctly matched in both number(color) and position to the secret code.
+- **blow**: The number of pins that match the secret code in number(color) but are positioned differently.
 
 Example: If secret code is `[1, 2, 3, 4]` and guess code is `[0, 1, 2, 3]`, then the feedback: (hit, blow) is `(0, 3)`.
 
