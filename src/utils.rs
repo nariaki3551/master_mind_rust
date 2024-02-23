@@ -1,7 +1,8 @@
 use crate::def;
 
 use itertools::Itertools;
-use std::collections::HashMap;
+// use std::collections::HashMap;
+use hashbrown::HashMap;
 use std::io::Write;
 
 // enumerate all codes according to context
@@ -12,7 +13,7 @@ pub fn get_all_codes(context: &def::Context) -> def::CodeSet {
             .multi_cartesian_product()
             .collect(),
         false => (0..context.color_num)
-            .permutations(context.pin_num)
+            .permutations(context.pin_num as usize)
             .collect(),
     }
 }
@@ -35,17 +36,17 @@ pub fn trial(guess: &def::Code) -> def::Hint {
 pub fn calc_hint(code: &def::Code, guess: &def::Code, context: &def::Context) -> def::Hint {
     let mut hit = 0;
     let mut blow = 0;
-    let mut code_color_counts = vec![0; context.color_num]; // array of the number of i-th colors which code has
-    let mut guess_color_counts = vec![0; context.color_num]; // array of the number of i-th colors which guess has
-    for i in 0..context.pin_num {
-        if code[i] == guess[i] {
+    let mut code_color_counts = vec![0; context.color_num.into()]; // array of the number of i-th colors which code has
+    let mut guess_color_counts = vec![0; context.color_num.into()]; // array of the number of i-th colors which guess has
+    for (&c, &g) in code.iter().zip(guess.iter()) {
+        if c == g {
             hit += 1;
         } else {
-            code_color_counts[code[i]] += 1;
-            guess_color_counts[guess[i]] += 1;
+            code_color_counts[c as usize] += 1;
+            guess_color_counts[g as usize] += 1;
         }
     }
-    for i in 0..context.color_num {
+    for i in 0..context.color_num as usize {
         blow += std::cmp::min(code_color_counts[i], guess_color_counts[i]);
     }
     (hit, blow)
@@ -58,25 +59,25 @@ pub fn calc_hint_based_candidate_num_map(
     context: &def::Context,
 ) -> HashMap<def::Hint, i16> {
     let mut map = HashMap::new();
-    for code in candidates {
-        let hint = calc_hint(code, guess, context);
-        let candidate_num = map.entry(hint).or_insert(0);
-        *candidate_num += 1;
-    }
+    candidates.iter().for_each(|code| {
+        *map.entry(calc_hint(code, guess, context) /* hint */)
+            .or_insert(0) += 1;
+    });
     map
 }
 
 // create map whose key is hint vaule is code set
 pub fn calc_hint_based_candidates_map(
-    candidates: &def::CodeSet,
+    candidates: def::CodeSet,
     guess: &def::Code,
     context: &def::Context,
 ) -> HashMap<def::Hint, def::CodeSet> {
     let mut map = HashMap::new();
-    for code in candidates {
-        let hint = calc_hint(code, guess, context);
-        map.entry(hint).or_insert_with(Vec::new).push(code.clone());
-    }
+    candidates.into_iter().for_each(|code| {
+        map.entry(calc_hint(&code, guess, context) /* hint */)
+            .or_insert_with(Vec::new)
+            .push(code);
+    });
     map
 }
 
@@ -90,25 +91,27 @@ mod tests {
             pin_num: 2,
             color_num: 2,
             duplicate: true,
+            policy: def::Policy::Minmax,
+            mode: def::Mode::Guess,
         };
         assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 1_usize], &context),
+            calc_hint(&vec![0_u8, 0_u8], &vec![1_u8, 1_u8], &context),
             (0, 0)
         );
         assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 1_usize], &context),
+            calc_hint(&vec![0_u8, 0_u8], &vec![0_u8, 1_u8], &context),
             (1, 0)
         );
         assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![1_usize, 0_usize], &context),
+            calc_hint(&vec![0_u8, 0_u8], &vec![1_u8, 0_u8], &context),
             (1, 0)
         );
         assert_eq!(
-            calc_hint(&vec![0_usize, 0_usize], &vec![0_usize, 0_usize], &context),
+            calc_hint(&vec![0_u8, 0_u8], &vec![0_u8, 0_u8], &context),
             (2, 0)
         );
         assert_eq!(
-            calc_hint(&vec![0_usize, 1_usize], &vec![1_usize, 0_usize], &context),
+            calc_hint(&vec![0_u8, 1_u8], &vec![1_u8, 0_u8], &context),
             (0, 2)
         );
     }
@@ -119,45 +122,27 @@ mod tests {
             pin_num: 3,
             color_num: 6,
             duplicate: true,
+            policy: def::Policy::Minmax,
+            mode: def::Mode::Guess,
         };
         assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![1_usize, 1_usize, 5_usize],
-                &context
-            ),
+            calc_hint(&vec![0_u8, 0_u8, 4_u8], &vec![1_u8, 1_u8, 5_u8], &context),
             (0, 0)
         );
         assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![0_usize, 1_usize, 5_usize],
-                &context
-            ),
+            calc_hint(&vec![0_u8, 0_u8, 4_u8], &vec![0_u8, 1_u8, 5_u8], &context),
             (1, 0)
         );
         assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![1_usize, 0_usize, 5_usize],
-                &context
-            ),
+            calc_hint(&vec![0_u8, 0_u8, 4_u8], &vec![1_u8, 0_u8, 5_u8], &context),
             (1, 0)
         );
         assert_eq!(
-            calc_hint(
-                &vec![0_usize, 0_usize, 4_usize],
-                &vec![0_usize, 0_usize, 5_usize],
-                &context
-            ),
+            calc_hint(&vec![0_u8, 0_u8, 4_u8], &vec![0_u8, 0_u8, 5_u8], &context),
             (2, 0)
         );
         assert_eq!(
-            calc_hint(
-                &vec![0_usize, 1_usize, 4_usize],
-                &vec![1_usize, 0_usize, 5_usize],
-                &context
-            ),
+            calc_hint(&vec![0_u8, 1_u8, 4_u8], &vec![1_u8, 0_u8, 5_u8], &context),
             (0, 2)
         );
     }

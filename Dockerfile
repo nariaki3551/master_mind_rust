@@ -9,9 +9,10 @@ WORKDIR ${HOME}
 # install packages via apt
 RUN apt update -y
 RUN apt install -y tzdata
-RUN apt install -y curl build-essential valgrind
+RUN apt install -y curl build-essential valgrind vim
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
-RUN echo "source $HOME/.cargo/env" >> .bashrc
+# RUN echo "source $HOME/.cargo/env" >> .bashrc
 
 # copy local files into image
 COPY . .
+RUN /bin/bash -c "source $HOME/.cargo/env && cargo build"

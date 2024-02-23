@@ -9,9 +9,9 @@ use log::debug;
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(default_value_t = 6, help = "number of colors")]
-    color_num: usize,
+    color_num: u8,
     #[arg(default_value_t = 4, help = "number of pins")]
-    pin_num: usize,
+    pin_num: u8,
     #[arg(short, long, help = "codes do not have duplicate colors")]
     non_duplicate: bool,
     #[arg(long, value_enum, default_value_t = def::Policy::Minmax, help = "policy")]
@@ -38,6 +38,7 @@ fn main() {
         def::Mode::Guess => main_guess(context),
         def::Mode::Mktree => main_mktree(context, true),
         def::Mode::Benchmark => main_benchmark(context),
+        def::Mode::Profile => main_profile(context),
     }
 }
 
@@ -66,7 +67,7 @@ fn main_guess(context: def::Context) {
     assert_eq!(candidates.len(), 1);
 
     // post process
-    println!("Your secret is {:?}", &candidates[0]);
+    println!("Your secret is {:?}", candidates[0]);
 }
 
 fn main_mktree(context: def::Context, verbose: bool) {
@@ -77,43 +78,37 @@ fn main_mktree(context: def::Context, verbose: bool) {
 
     // generate all codes from context
     let all_codes = utils::get_all_codes(&context);
+    let candidates = all_codes.clone();
     debug!("finish get_all_codes: size {}", all_codes.len());
-    mktree_step(&all_codes, 1, &all_codes, &context, verbose);
+    mktree_step(candidates, 0, &all_codes, &context, verbose);
 }
 
 fn mktree_step(
-    candidates: &def::CodeSet,
+    candidates: def::CodeSet,
     depth: usize,
     all_codes: &def::CodeSet,
     context: &def::Context,
     verbose: bool,
 ) {
     let guess = match context.policy {
-        def::Policy::Firstpick => policy::first_pick(candidates),
-        def::Policy::Minmax => policy::minmax(candidates, all_codes, context),
+        def::Policy::Firstpick => policy::first_pick(&candidates),
+        def::Policy::Minmax => policy::minmax(&candidates, all_codes, context),
     };
-    if verbose {
-        print_trial(depth, &guess);
-    }
+    print_trial(depth, &guess, verbose);
     let map = utils::calc_hint_based_candidates_map(candidates, &guess, context);
-    for (hint, candidates) in &map {
-        if verbose {
-            print_hint(depth, hint, candidates.len());
-        }
-        if candidates.len() == 1 {
-            let turn = depth + if hint.0 == context.pin_num { 0 } else { 1 };
-            if verbose {
-                print_secret(depth, &map[hint][0], turn);
-            }
+    for (hint, hint_candidates) in map.into_iter() {
+        print_hint(depth, &hint, hint_candidates.len(), verbose);
+        if hint_candidates.len() == 1 {
+            let turn = depth + if hint.0 == context.pin_num { 1 } else { 2 };
+            print_secret(depth, &hint_candidates[0], turn, verbose);
         } else {
-            mktree_step(&map[hint], depth + 1, all_codes, context, verbose);
+            mktree_step(hint_candidates, depth + 1, all_codes, context, verbose);
         }
     }
 }
 
 fn main_benchmark(context: def::Context) {
     let context_set = [(2, 2), (4, 2), (4, 4), (6, 2), (6, 4)];
-    // let context_set = [(2, 2), (4, 2), (4, 4), (6, 2)];
     println!("color_num,pin_num,duplicate,policy,run,elapsed");
     for (color_num, pin_num) in context_set {
         for i in 0..10 {
@@ -135,34 +130,54 @@ fn main_benchmark(context: def::Context) {
     }
 }
 
+fn main_profile(context: def::Context) {
+    let context_set = [(2, 2), (4, 2), (4, 4), (6, 2)];
+    for (color_num, pin_num) in context_set {
+        let exp_context = def::Context {
+            color_num,
+            pin_num,
+            duplicate: context.duplicate,
+            policy: context.policy.clone(),
+            mode: context.mode.clone(),
+        };
+        main_mktree(exp_context, false);
+    }
+}
+
 fn print_notation() {
     println!(
         "Notation:\n#c=: number of candidates is\ng= : guess is\n#t= : number of total turns is\n"
     );
 }
-fn print_trial(depth: usize, guess: &def::Code) {
-    println!(
-        "{}Trial {}: g={:?}",
-        " ".repeat(4 * depth),
-        depth + 1,
-        guess
-    );
+fn print_trial(depth: usize, guess: &def::Code, verbose: bool) {
+    if verbose {
+        println!(
+            "{}Trial {}: g={:?}",
+            " ".repeat(4 * depth),
+            depth + 1,
+            guess
+        );
+    }
 }
 
-fn print_hint(depth: usize, hint: &def::Hint, candidate_num: usize) {
-    println!(
-        "{}-> hint = {:?}, #c={}",
-        " ".repeat(4 * (depth + 1)),
-        hint,
-        candidate_num
-    );
+fn print_hint(depth: usize, hint: &def::Hint, candidate_num: usize, verbose: bool) {
+    if verbose {
+        println!(
+            "{}-> hint = {:?}, #c={}",
+            " ".repeat(4 * (depth + 1)),
+            hint,
+            candidate_num
+        );
+    }
 }
 
-fn print_secret(depth: usize, secret: &def::Code, turn: usize) {
-    println!(
-        "{}secret is {:?} #t={}",
-        " ".repeat(4 * (depth + 2)),
-        secret,
-        turn
-    );
+fn print_secret(depth: usize, secret: &def::Code, turn: usize, verbose: bool) {
+    if verbose {
+        println!(
+            "{}secret is {:?} #t={}",
+            " ".repeat(4 * (depth + 2)),
+            secret,
+            turn
+        );
+    }
 }
