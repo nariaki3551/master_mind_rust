@@ -24,5 +24,4 @@ pub enum Mode {
     Guess,
     Mktree,
     Benchmark,
-    Profile,
 }

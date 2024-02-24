@@ -16,7 +16,7 @@ struct Args {
     non_duplicate: bool,
     #[arg(long, value_enum, default_value_t = def::Policy::Minmax, help = "policy")]
     policy: def::Policy,
-    #[arg(long, value_enum, default_value_t = def::Mode::Guess, help = "mode")]
+    #[arg(long, value_enum, default_value_t = def::Mode::Mktree, help = "mode")]
     mode: def::Mode,
 }
 
@@ -38,7 +38,6 @@ fn main() {
         def::Mode::Guess => main_guess(context),
         def::Mode::Mktree => main_mktree(context, true),
         def::Mode::Benchmark => main_benchmark(context),
-        def::Mode::Profile => main_profile(context),
     }
 }
 
@@ -127,20 +126,6 @@ fn main_benchmark(context: def::Context) {
                 color_num, pin_num, context.duplicate, context.policy, i, elapsed
             );
         }
-    }
-}
-
-fn main_profile(context: def::Context) {
-    let context_set = [(2, 2), (4, 2), (4, 4), (6, 2)];
-    for (color_num, pin_num) in context_set {
-        let exp_context = def::Context {
-            color_num,
-            pin_num,
-            duplicate: context.duplicate,
-            policy: context.policy.clone(),
-            mode: context.mode.clone(),
-        };
-        main_mktree(exp_context, false);
     }
 }
 

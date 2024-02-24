@@ -1,9 +1,11 @@
 use crate::def;
 
 use itertools::Itertools;
-// use std::collections::HashMap;
 use hashbrown::HashMap;
 use std::io::Write;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+
 
 // enumerate all codes according to context
 pub fn get_all_codes(context: &def::Context) -> def::CodeSet {
@@ -32,12 +34,19 @@ pub fn trial(guess: &def::Code) -> def::Hint {
     (hit, blow)
 }
 
+static CODE_COLOR_COUNTS: Lazy<Mutex<Vec<u8>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static GUESS_COLOR_COUNTS: Lazy<Mutex<Vec<u8>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 // calculate hint from two codes
 pub fn calc_hint(code: &def::Code, guess: &def::Code, context: &def::Context) -> def::Hint {
     let mut hit = 0;
     let mut blow = 0;
-    let mut code_color_counts = vec![0; context.color_num.into()]; // array of the number of i-th colors which code has
-    let mut guess_color_counts = vec![0; context.color_num.into()]; // array of the number of i-th colors which guess has
+
+    let mut code_color_counts = CODE_COLOR_COUNTS.lock().unwrap();
+    let mut guess_color_counts = GUESS_COLOR_COUNTS.lock().unwrap();
+    code_color_counts.resize(context.color_num as usize, 0);
+    guess_color_counts.resize(context.color_num as usize, 0);
+
     for (&c, &g) in code.iter().zip(guess.iter()) {
         if c == g {
             hit += 1;
@@ -49,6 +58,11 @@ pub fn calc_hint(code: &def::Code, guess: &def::Code, context: &def::Context) ->
     for i in 0..context.color_num as usize {
         blow += std::cmp::min(code_color_counts[i], guess_color_counts[i]);
     }
+
+    // clear vector contents
+    code_color_counts.clear();
+    guess_color_counts.clear();
+
     (hit, blow)
 }
 
